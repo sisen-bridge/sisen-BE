@@ -1,0 +1,30 @@
+steps:
+  # 1. Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/fastapi-backend:$COMMIT_SHA', '.']
+
+  # 2. Push the container image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/fastapi-backend:$COMMIT_SHA']
+
+  # 3. Deploy container image to Cloud Run with Cloud SQL bindings
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'fastapi-backend'
+      - '--image'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/fastapi-backend:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--add-cloudsql-instances'
+      - 'mercurial-cairn-496504-f9:us-central1:sisen-articles'
+      - '--set-env-vars'
+      - 'INSTANCE_CONNECTION_NAME=mercurial-cairn-496504-f9:us-central1:sisen-articles,DB_USER=admin,DB_NAME=sisen_articles_db'
+      - '--set-secrets'
+      - 'DB_PASS=db-password:latest'
+      - '--allow-unauthenticated'
+
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/fastapi-backend:$COMMIT_SHA'
